@@ -1,25 +1,64 @@
-name: Java CI with Gradle
+name: Java Gradle CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21] # Test multiple JDK versions
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
-    - name: Build with Gradle
-      run: ./gradlew build
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up JDK
+      - name: Set up Java ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: gradle
+
+      # Verify Java
+      - name: Check Java version
+        run: java -version
+
+      # Detect Gradle wrapper or install Gradle
+      - name: Setup Gradle
+        id: gradle-setup
+        run: |
+          if [ -f "./gradlew" ]; then
+            echo "Using Gradle wrapper"
+            chmod +x ./gradlew
+            echo "gradle_command=./gradlew" >> $GITHUB_ENV
+          else
+            echo "Gradle wrapper not found. Installing Gradle..."
+            sudo apt-get update
+            sudo apt-get install -y gradle
+            echo "gradle_command=gradle" >> $GITHUB_ENV
+          fi
+
+      # Check Gradle version
+      - name: Check Gradle version
+        run: $gradle_command --version
+
+      # Build project
+      - name: Build
+        run: $gradle_command build --no-daemon
+
+      # Run tests
+      - name: Test
+        run: $gradle_command test --no-daemon
+
+      # Upload artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: build/libs/
