@@ -16,10 +16,6 @@ jobs:
       # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
-        
-      - name: Build with Gradle
-        run: sudo apt-get install gradle -y &&
- gradle build
 
       # Set up JDK
       - name: Set up Java ${{ matrix.java }}
@@ -62,7 +58,7 @@ jobs:
 
       # Upload artifacts
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: build
           path: build/libs/
